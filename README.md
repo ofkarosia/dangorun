@@ -1,22 +1,29 @@
 # dangorun
-小团快跑模拟器
+Wuthering Waves Dango Run (Cubie Derby) Simulator 
 
-## 声明
-- 本项目使用`ChaCha20Rng`作为随机数生成器，尽可能保证跨平台可复现性
-- 为简化逻辑（我菜），部分逻辑依赖于游戏地图本身且使用断言检查，不保证自定义地图在逻辑层面上的正确性和可操作性
-- 部分非重点代码未做边界检查
-- 仅假设初始情况（团子都在起点）*
-- 由于部分技能文本描述具有一定歧义，因此不保证逻辑与官方100%一致
-  - 部分技能触发时机尚不明确，因此存在触发顺序差异导致的结果差异
+English | [中文文档](./README.zh_CN.md)
 
-## 部分团子技能说明
-- 布大王：测试存在布大王返回到起点的可能，对应处理：在回合结束并触发返回终点条件时会停留在起点
-- 西格莉卡的技能逻辑只看对方初始点数，如果不大于1则不进行操作，标记效果后于角色技能加成生效
-- 对于奥古，长离这类下一轮最后一个行动的技能，触发时会被“推入”最后一位，最后一个触发的将成为既定的最后一位
-- 奥古、长离技能触发时将占用两个回合，不会连续触发
-- 今汐：所有团子每次移动结束时，触发检查，若今汐所在格为普通格，检查该团子是否为直接“踩头”的团子，若所在格为重排格，只检查是否和今汐在同一格
+## Disclaimer
+- This project uses `ChaCha20Rng` as the random number generator to ensure cross-platform reproducibility as much as possible.
+- To simplify the logic (due to my limited expertise), some logic depends on the specific game map and uses `assert` checks. There is no guarantee that custom maps will be logically correct or playable.
+- Some non-critical code sections lack boundary checks.
+- It is assumed that all Dangos start at the origin (starting point).*
+- Due to ambiguities in some skill descriptions, logic may not be 100% consistent with the official game.
+  - The exact triggering timing for some skills remains unclear; therefore, differences in trigger order may lead to different results.
+
+## Notes on Dango Skills
+- Abby: Tests show that Abby may return to the starting point. Handling: If the condition to return to the finish line is triggered at the end of a round, it will remain at the starting point.
+- Sigrika: Skill logic only considers the opponent's initial points. If the points are not greater than 1, no action is taken. The marking effect is applied after character skill bonuses.
+- Augusta / Changli: For skills that force a unit to act last in the next round, if multiple are triggered, the last one to trigger will be the final unit to act.
+- Augusta and Changli's skills consume two rounds and will not trigger consecutively.
+- Jinhsi: After every Dango's movement, a check is triggered. If Jinhsi is on a normal tile, it checks if the Dango "stepped on" her head. If she is on a rearrangement tile, it only checks if the Dango is on the same tile as Jinhsi.
 
 *: STC
+
+## References
+[wuwa_CubieDerby](https://github.com/EEEEEEEEdison/wuwa_CubieDerby)
+
+[wuwa-dango-race-sim](https://github.com/Maxim00191/wuwa-dango-race-sim)
 
 ## License
 [MIT](./LICENSE)
