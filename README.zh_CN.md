@@ -12,7 +12,7 @@
   - 部分技能触发时机尚不明确，因此存在触发顺序差异导致的结果差异
 
 ## 部分团子技能说明
-- 布大王：测试存在布大王返回到起点的可能，对应处理：在回合结束并触发返回终点条件时会停留在起点
+- 布大王：测试存在布大王返回到起点的可能，对应处理：在回合结束并触发返回终点条件前会停留在起点
 - 西格莉卡的技能逻辑只看对方初始点数，如果不大于1则不进行操作，标记效果后于角色技能加成生效
 - 对于奥古，长离这类下一轮最后一个行动的技能，触发时会被“推入”最后一位，最后一个触发的将成为既定的最后一位
 - 奥古、长离技能触发时将占用两个回合，不会连续触发
@@ -20,10 +20,12 @@
 
 *: STC
 
-## 参考
+## 参考 / 相似项目
 [wuwa_CubieDerby](https://github.com/EEEEEEEEdison/wuwa_CubieDerby)
 
 [wuwa-dango-race-sim](https://github.com/Maxim00191/wuwa-dango-race-sim)
+
+[wuwa-cubie-derby-sim](https://github.com/Boatkungg/wuwa-cubie-derby-sim)
 
 ## License
 [MIT](./LICENSE)

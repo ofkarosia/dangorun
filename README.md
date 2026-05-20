@@ -12,7 +12,7 @@ English | [中文文档](./README.zh_CN.md)
   - The exact triggering timing for some skills remains unclear; therefore, differences in trigger order may lead to different results.
 
 ## Notes on Dango Skills
-- Abby: Tests show that Abby may return to the starting point. Handling: If the condition to return to the finish line is triggered at the end of a round, it will remain at the starting point.
+- Abby: Tests show that Abby may return to the starting point. Handling: Before the condition to return to the finish line is triggered at the end of a round, it will remain at the starting point.
 - Sigrika: Skill logic only considers the opponent's initial points. If the points are not greater than 1, no action is taken. The marking effect is applied after character skill bonuses.
 - Augusta / Changli: For skills that force a unit to act last in the next round, if multiple are triggered, the last one to trigger will be the final unit to act.
 - Augusta and Changli's skills consume two rounds and will not trigger consecutively.
@@ -20,10 +20,12 @@ English | [中文文档](./README.zh_CN.md)
 
 *: STC
 
-## References
+## References / Similar projects
 [wuwa_CubieDerby](https://github.com/EEEEEEEEdison/wuwa_CubieDerby)
 
 [wuwa-dango-race-sim](https://github.com/Maxim00191/wuwa-dango-race-sim)
+
+[wuwa-cubie-derby-sim](https://github.com/Boatkungg/wuwa-cubie-derby-sim)
 
 ## License
 [MIT](./LICENSE)
