@@ -20,7 +20,7 @@ jobs:
           - os: ubuntu-latest
             platform: linux-x86_64
             bin_suffix: ""
-          - os: windows_latest
+          - os: windows-latest
             platform: windows-x86_64
             bin_suffix: ".exe"
 
