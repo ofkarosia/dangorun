@@ -17,11 +17,7 @@ impl Skill for Cartethyia {
         &[Hook::BeforeMove, Hook::FinishMove]
     }
 
-    fn trigger(&mut self, ctx: Context, handle: crate::skill::Handle) {
-        if ctx.round == 1 {
-            return;
-        }
-
+    fn trigger(&mut self, _ctx: Context, handle: crate::skill::Handle) {
         match handle.hook_cap {
             HookCapability::BeforeMove { step, .. } if self.activated => {
                 if handle.rng.random_bool(0.6) {

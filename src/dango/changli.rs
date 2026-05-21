@@ -15,11 +15,7 @@ impl Skill for Changli {
         &[Hook::FinishMove]
     }
 
-    fn trigger(&mut self, ctx: crate::skill::Context, handle: crate::skill::Handle) {
-        if ctx.round == 1 {
-            return;
-        }
-
+    fn trigger(&mut self, _ctx: crate::skill::Context, handle: crate::skill::Handle) {
         if self.activated {
             self.activated = false;
             return;

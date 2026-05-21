@@ -13,10 +13,6 @@ impl Skill for Jinhsi {
     }
 
     fn trigger(&mut self, ctx: crate::skill::Context, handle: crate::skill::Handle) {
-        if ctx.round == 1 {
-            return;
-        }
-
         let HookMessage::GlobalFinishMove { id } = ctx.hook_msg else { unreachable!() };
         let HookCapability::GlobalFinishMove { map, .. } = handle.hook_cap else { unreachable!() };
 
