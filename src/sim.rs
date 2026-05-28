@@ -9,7 +9,6 @@ use rand::{
     seq::IndexedRandom,
 };
 use std::{cell::Cell, panic};
-use twox_hash::XxHash3_64;
 
 use crate::{
     dango::{Dango, DangoMap, abby::Abby},
@@ -253,6 +252,8 @@ pub fn debug_sim(
         LogMode::Debug
     });
 
+    SEED.set(seed);
+
     panic::set_hook(Box::new(|info| {
         let logs = drain_logs();
 
@@ -260,15 +261,12 @@ pub fn debug_sim(
             eprintln!("{logs}");
         }
 
-        eprintln!("Log hash: {:x}", XxHash3_64::oneshot(logs.as_bytes()));
+        eprintln!("Seed: {}", SEED.get());
         eprintln!("{}", info);
     }));
 
     run(seed, dango_list, map_variant)?;
-    eprintln!(
-        "Log hash: {:x}",
-        XxHash3_64::oneshot(drain_logs().as_bytes())
-    );
+    eprintln!("Seed: {seed}");
 
     Ok(())
 }
