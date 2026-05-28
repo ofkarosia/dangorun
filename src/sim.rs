@@ -236,7 +236,7 @@ fn run(seed: u64, dango_list: Vec<Dango>, map_variant: MapVariant) -> Result<Dan
         round_finish_check(&map, round, abby_activated);
     }
 
-    let winner = *map.leaderboard().first().unwrap();
+    let winner = map.leaderboard()[0];
 
     Ok(winner)
 }

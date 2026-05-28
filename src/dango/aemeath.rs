@@ -32,7 +32,7 @@ impl Skill for Aemeath {
 
         let last = *stack.back().unwrap();
 
-        if last == *leaderboard.first().unwrap() {
+        if last == leaderboard[0] {
             return;
         };
 

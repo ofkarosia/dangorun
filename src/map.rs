@@ -60,7 +60,7 @@ impl Map {
         for (id, (block_index, stack_index)) in self
             .pos_map
             .iter()
-            .filter(|(d, _)| !abby_activated && **d == Dango::Abby)
+            .filter(|(d, _)| !abby_activated && d.is_abby())
         {
             debug!("Checking pos of {id}");
             assert_eq!(*id, self.blocks[*block_index].stack[*stack_index])
@@ -76,8 +76,10 @@ impl Map {
         }
 
         let final_block_index = if forward {
+            assert_ne!(step, 0);
             block_index.saturating_sub(step as usize)
         } else {
+            assert_eq!(step, 1);
             let r = block_index + step as usize;
             assert!(r < self.len - 1);
             r
@@ -130,24 +132,10 @@ impl Map {
         self.blocks[final_block_index].flag
     }
 
-    fn abby_forward(&mut self, step: u8) -> Flag {
-        assert_ne!(step, 0);
-        self.abby_move(step, true)
-    }
-
-    fn abby_back(&mut self, step: u8) -> Flag {
-        assert_eq!(step, 1);
-        self.abby_move(step, false)
-    }
-
     pub fn restack(&mut self, block_index: usize, rng: &mut RngCore) {
         let stack = &mut self.blocks[block_index].stack;
 
-        let shuffle_start = if *stack.front().unwrap() == Dango::Abby {
-            1usize
-        } else {
-            0
-        };
+        let shuffle_start = if stack[0].is_abby() { 1usize } else { 0 };
 
         let stack = &mut stack.make_contiguous()[shuffle_start..];
 
@@ -160,9 +148,9 @@ impl Map {
         self.update_pos_in(block_index);
     }
 
-    pub fn forward(&mut self, id: Dango, step: u8) -> (Flag, bool) {
-        if id == Dango::Abby {
-            return (self.abby_forward(step), false);
+    pub fn move_by(&mut self, id: Dango, step: u8, forward: bool) -> (Flag, bool) {
+        if id.is_abby() {
+            return (self.abby_move(step, forward), false);
         }
 
         let (block_index, stack_index) = self.position(id);
@@ -171,37 +159,19 @@ impl Map {
             return (self.blocks[block_index].flag, false);
         }
 
-        let count = self.blocks[block_index].stack.len();
-        let last_block_index = self.len - 1;
+        debug!("{id} moving from: ({block_index}, {stack_index})");
 
-        if stack_index == count - 1 {
-            debug!("{id} is top: ({block_index}, {stack_index})");
-            self.blocks[block_index].stack.pop_back();
-            let new_block_index = block_index + step as usize;
-
-            if new_block_index >= last_block_index {
-                self.blocks.last_mut().unwrap().stack.push_back(id);
-                return (Flag::Step, true);
-            }
-
-            let new_flag = self.blocks[new_block_index].flag;
-            let new_stack = &mut self.blocks[new_block_index].stack;
-            let new_stack_index = new_stack.len();
-            new_stack.push_back(id);
-            self.update_pos(id, new_block_index, new_stack_index);
-            return (new_flag, false);
-        }
-
-        let new_block_index = block_index + step as usize;
-
-        if new_block_index >= last_block_index {
-            let [block, final_block] = self
-                .blocks
-                .get_disjoint_mut([block_index, last_block_index])
-                .unwrap();
-            final_block.stack.extend(block.stack.drain(stack_index..));
-            return (Flag::Step, true);
-        }
+        let end_block_index = self.len - 1;
+        let new_block_index = if forward {
+            block_index + step as usize
+        } else {
+            let r = block_index.checked_sub(step as usize).unwrap();
+            assert_ne!(r, 0);
+            r
+        };
+        
+        let has_reached_end = new_block_index >= end_block_index;
+        let new_block_index = new_block_index.min(end_block_index);
 
         let [block, new_block] = self
             .blocks
@@ -212,42 +182,15 @@ impl Map {
         new_block.stack.extend(block.stack.drain(stack_index..));
         self.update_pos_in(new_block_index);
 
-        (new_flag, false)
+        (new_flag, has_reached_end)
+    }
+
+    pub fn forward(&mut self, id: Dango, step: u8) -> (Flag, bool) {
+        self.move_by(id, step, true)
     }
 
     pub fn back(&mut self, id: Dango, step: u8) -> Flag {
-        if id == Dango::Abby {
-            return self.abby_back(step);
-        }
-
-        let (block_index, stack_index) = self.position(id);
-        let count = self.blocks[block_index].stack.len();
-
-        let new_block_index = block_index.checked_sub(step as usize).unwrap();
-        assert_ne!(new_block_index, 0);
-
-        if stack_index == count - 1 {
-            debug!("{id} is top: ({block_index}, {stack_index})");
-            self.blocks[block_index].stack.pop_back();
-
-            let new_flag = self.blocks[new_block_index].flag;
-            let new_stack = &mut self.blocks[new_block_index].stack;
-            let new_stack_index = new_stack.len();
-            new_stack.push_back(id);
-            self.update_pos(id, new_block_index, new_stack_index);
-            return new_flag;
-        }
-
-        let [block, new_block] = self
-            .blocks
-            .get_disjoint_mut([block_index, new_block_index])
-            .unwrap();
-
-        let new_flag = new_block.flag;
-        new_block.stack.extend(block.stack.drain(stack_index..));
-        self.update_pos_in(new_block_index);
-
-        new_flag
+        self.move_by(id, step, false).0
     }
 
     pub fn position(&self, id: Dango) -> (usize, usize) {
@@ -258,7 +201,7 @@ impl Map {
         let mut set = IndexSet::with_capacity(self.pos_map.len());
 
         for block in self.blocks.iter().rev().filter(|b| !b.stack.is_empty()) {
-            for id in block.stack.iter().rev().filter(|id| **id != Dango::Abby) {
+            for id in block.stack.iter().rev().filter(|id| !id.is_abby()) {
                 set.insert(*id);
             }
         }

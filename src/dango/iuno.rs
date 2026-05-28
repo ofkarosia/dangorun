@@ -43,7 +43,7 @@ impl Skill for Iuno {
         
         let leaderboard = map.leaderboard();
 
-        if *leaderboard.first().unwrap() == self.name() || *leaderboard.last().unwrap() == self.name() {
+        if leaderboard[0] == self.name() || *leaderboard.last().unwrap() == self.name() {
             return;
         }
         
