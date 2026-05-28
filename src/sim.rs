@@ -1,5 +1,5 @@
 use color_eyre::eyre::Result;
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexMap;
 use log::debug;
 use logcall::logcall;
 use rand::{
@@ -15,12 +15,14 @@ use crate::{
     dango::{Dango, DangoMap, abby::Abby},
     logging::{self, LogMode, drain_logs, init_logger},
     map::{Flag, Map, MapVariant},
-    skill::{Context, DelayedAction, EffectSet, Handle, Hook, HookMessage, Skill, SkillManager},
+    skill::{Context, DelayedAction, Handle, Hook, Skill, SkillManager},
 };
 
 thread_local! {
     static SEED: Cell<u64> = const { Cell::new(0) }
 }
+
+pub type RngCore = ChaCha20Rng;
 
 #[logcall]
 fn teleport_abby_at_end(map: &mut Map, abby_pos: usize) {
@@ -45,7 +47,7 @@ fn round_finish_check(map: &Map, round: u8, abby_activated: bool) {
 
 fn run(seed: u64, dango_list: Vec<Dango>, map_variant: MapVariant) -> Result<Dango> {
     debug!("Simulation starts, using seed {seed}");
-    let mut rng = ChaCha20Rng::seed_from_u64(seed);
+    let mut rng = RngCore::seed_from_u64(seed);
     let mut dango_map: DangoMap = dango_list
         .into_iter()
         .map(|d| (d, d.create_boxed()))
@@ -59,10 +61,7 @@ fn run(seed: u64, dango_list: Vec<Dango>, map_variant: MapVariant) -> Result<Dan
 
     let dice = Uniform::new_inclusive(1u8, 3).unwrap();
     let mut points_map: IndexMap<Dango, u8>;
-    let mut delayed_action = DelayedAction {
-        effect_set: EffectSet::new(),
-        next_tail_ordering: IndexSet::new(),
-    };
+    let mut delayed_action = DelayedAction::default();
 
     let mut round = 1u8;
     let mut end = false;
@@ -75,7 +74,7 @@ fn run(seed: u64, dango_list: Vec<Dango>, map_variant: MapVariant) -> Result<Dan
             debug!("Abby activated");
             abby_activated = true;
             let abby = Box::new(Abby::default()) as Box<dyn Skill>;
-            skill_manager.register(&abby);
+            skill_manager.register(&*abby);
             dango_map.insert(Dango::Abby, Box::new(Abby::default()));
             map.pos_map.insert(Dango::Abby, (map.len() - 1, 0));
             ids.push(Dango::Abby);
@@ -114,13 +113,9 @@ fn run(seed: u64, dango_list: Vec<Dango>, map_variant: MapVariant) -> Result<Dan
                     return (id, dice.sample(&mut rng));
                 }
 
-                let ctx = Context {
-                    round,
-                    hook_msg: HookMessage::OnDice,
-                };
-
                 let mut pts = 0;
-                let handle = Handle::new_on_dice(&mut rng, &mut pts);
+                let ctx = Context::on_dice(round);
+                let handle = Handle::on_dice(&mut rng, &mut pts);
                 dango_map.get_mut(&id).unwrap().trigger(ctx, handle);
 
                 (id, pts)
@@ -131,19 +126,15 @@ fn run(seed: u64, dango_list: Vec<Dango>, map_variant: MapVariant) -> Result<Dan
         debug!("Position map: {:#?}", map.pos_map);
 
         for id in ordering.iter().filter(|id| after_dice_hooks.contains(id)) {
-            let ctx = Context {
-                round,
-                hook_msg: HookMessage::new_after_dice(&map, &points_map),
-            };
-
-            let handle = Handle::new_after_dice(&mut rng, &mut delayed_action);
+            let ctx = Context::after_dice(round, &map, &points_map);
+            let handle = Handle::after_dice(&mut rng, &mut delayed_action);
 
             debug!("AfterDice Hook -> {id}");
             dango_map.get_mut(id).unwrap().trigger(ctx, handle);
         }
 
         for &id in &ordering {
-            if id == Dango::Abby && !abby_activated {
+            if id.is_abby() && !abby_activated {
                 continue;
             }
 
@@ -151,12 +142,8 @@ fn run(seed: u64, dango_list: Vec<Dango>, map_variant: MapVariant) -> Result<Dan
             let mut step = initial_pts;
 
             if before_move_hooks.contains(&id) {
-                let ctx = Context {
-                    round,
-                    hook_msg: HookMessage::new_before_move(&map),
-                };
-
-                let handle = Handle::new_before_move(&mut rng, &mut step, &mut delayed_action);
+                let ctx = Context::before_move(round, &map);
+                let handle = Handle::before_move(&mut rng, &mut step, &mut delayed_action);
                 debug!("BeforeMove Hook -> {id}");
                 dango_map.get_mut(&id).unwrap().trigger(ctx, handle);
             }
@@ -176,17 +163,13 @@ fn run(seed: u64, dango_list: Vec<Dango>, map_variant: MapVariant) -> Result<Dan
 
             match flag {
                 Flag::Forward | Flag::Back if on_device_hooks.contains(&id) => {
-                    let ctx = Context {
-                        round,
-                        hook_msg: HookMessage::OnDevice { flag },
-                    };
-
-                    let handle = Handle::new_on_device(&mut rng, &mut map, &mut end);
+                    let ctx = Context::on_device(round, flag);
+                    let handle = Handle::on_device(&mut rng, &mut map, &mut end);
 
                     debug!("OnDevice Hook -> {id}");
                     dango_map.get_mut(&id).unwrap().trigger(ctx, handle);
                 }
-                Flag::Forward if id == Dango::Abby => {
+                Flag::Forward if id.is_abby() => {
                     debug!("Abby back 1");
                     assert_eq!(map.back(id, 1), Flag::Step)
                 }
@@ -194,7 +177,7 @@ fn run(seed: u64, dango_list: Vec<Dango>, map_variant: MapVariant) -> Result<Dan
                     debug!("{id} forward 1");
                     assert_eq!(map.forward(id, 1), (Flag::Step, false))
                 }
-                Flag::Back if id == Dango::Abby => {
+                Flag::Back if id.is_abby() => {
                     debug!("Abby forward 1");
                     assert_eq!(map.forward(id, 1), (Flag::Step, false))
                 }
@@ -215,12 +198,8 @@ fn run(seed: u64, dango_list: Vec<Dango>, map_variant: MapVariant) -> Result<Dan
             }
 
             if finish_move_hooks.contains(&id) {
-                let ctx = Context {
-                    round,
-                    hook_msg: HookMessage::FinishMove,
-                };
-
-                let handle = Handle::new_finish_move(&mut rng, &mut map, &mut delayed_action);
+                let ctx = Context::finish_move(round);
+                let handle = Handle::finish_move(&mut rng, &mut map, &mut delayed_action);
 
                 debug!("FinishMove Hook -> {id}");
                 dango_map.get_mut(&id).unwrap().trigger(ctx, handle);
@@ -229,12 +208,8 @@ fn run(seed: u64, dango_list: Vec<Dango>, map_variant: MapVariant) -> Result<Dan
             for &id in global_finish_move_hooks {
                 debug!("GlobalFinishMove Hook -> {id}");
 
-                let ctx = Context {
-                    round,
-                    hook_msg: HookMessage::GlobalFinishMove { id },
-                };
-
-                let handle = Handle::new_global_finish_move(&mut rng, &mut map);
+                let ctx = Context::global_finish_move(round, id);
+                let handle = Handle::global_finish_move(&mut rng, &mut map);
                 dango_map.get_mut(&id).unwrap().trigger(ctx, handle);
             }
         }

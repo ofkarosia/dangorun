@@ -28,7 +28,10 @@ fn select_preset() -> Result<[Dango; 6]> {
         .iter()
         .map(|p| DemandOption::new(*p))
         .collect::<Vec<_>>();
-    let preset = Select::new("Select a preset").filterable(true).options(options).run()?;
+    let preset = Select::new("Select a preset")
+        .filterable(true)
+        .options(options)
+        .run()?;
     Ok(preset.1)
 }
 

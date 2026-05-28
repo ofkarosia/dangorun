@@ -2,9 +2,13 @@ use std::fmt::Display;
 
 use crate::dango::Dango;
 
-macro_rules! preset {
-    ($desc:literal, $($name:ident),* $(,)?) => {
-        Preset($desc, [$(Dango::$name),*])
+macro_rules! create_presets {
+    (
+        $($desc:literal: $($name:ident),* $(,)?)*
+    ) => {
+        [$(
+            Preset($desc, [$(Dango::$name),*])
+        ),*]
     };
 }
 
@@ -17,71 +21,15 @@ impl Display for Preset {
     }
 }
 
-pub static PRESETS: &[Preset] = &[
-    preset!("A", Luuk, Sigrika, Denia, Hiyuki, Cartethyia, Phoebe),
-    preset!("B", Chisa, Mornye, Lynae, Aemeath, Shorekeeper, Carlotta),
-    preset!("C", Augusta, Iuno, Phrolova, Changli, Jinhsi, Calcharo),
-    preset!(
-        "CN_Farewell",
-        Phoebe,
-        Luuk,
-        Lynae,
-        Mornye,
-        Phrolova,
-        Changli
-    ),
-    preset!(
-        "CN_A_Knockout",
-        Augusta,
-        Jinhsi,
-        Hiyuki,
-        Iuno,
-        Calcharo,
-        Cartethyia
-    ),
-    preset!(
-        "CN_B_Knockout",
-        Denia,
-        Shorekeeper,
-        Aemeath,
-        Sigrika,
-        Carlotta,
-        Chisa
-    ),
-    preset!(
-        "CN_Losers_Knockout",
-        Calcharo,
-        Augusta,
-        Cartethyia,
-        Sigrika,
-        Denia,
-        Chisa
-    ),
-    preset!(
-        "CN_Losers_Final",
-        Denia,
-        Augusta,
-        Carlotta,
-        Sigrika,
-        Aemeath,
-        Hiyuki
-    ),
-    preset!(
-        "CN_Losers_Farewell",
-        Chisa,
-        Calcharo,
-        Cartethyia,
-        Augusta,
-        Carlotta,
-        Hiyuki
-    ),
-    preset!(
-        "CN_Final",
-        Shorekeeper,
-        Iuno,
-        Jinhsi,
-        Aemeath,
-        Denia,
-        Sigrika
-    ),
-];
+pub static PRESETS: &[Preset] = &create_presets! {
+    "A": Luuk, Sigrika, Denia, Hiyuki, Cartethyia, Phoebe,
+    "B": Chisa, Mornye, Lynae, Aemeath, Shorekeeper, Carlotta,
+    "C": Augusta, Iuno, Phrolova, Changli, Jinhsi, Calcharo,
+    "CN_Farewell": Phoebe, Luuk, Lynae, Mornye, Phrolova, Changli,
+    "CN_A_Knockout": Augusta, Jinhsi, Hiyuki, Iuno, Calcharo, Cartethyia
+    "CN_B_Knockout": Denia, Shorekeeper, Aemeath, Sigrika, Carlotta, Chisa,
+    "CN_Losers_Knockout": Calcharo, Augusta, Cartethyia, Sigrika, Denia, Chisa
+    "CN_Losers_Final": Denia, Augusta, Carlotta, Sigrika, Aemeath, Hiyuki
+    "CN_Losers_Farewell": Chisa, Calcharo, Cartethyia, Augusta, Carlotta, Hiyuki
+    "CN_Final": Shorekeeper, Iuno, Jinhsi, Aemeath, Denia, Sigrika
+};

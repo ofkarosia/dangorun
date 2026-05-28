@@ -6,10 +6,10 @@ use std::{
 use color_eyre::eyre::Result;
 use indexmap::IndexSet;
 use log::debug;
-use rand::{rngs::ChaCha20Rng, seq::SliceRandom};
+use rand::seq::SliceRandom;
 use strum::{Display, EnumString, VariantArray};
 
-use crate::dango::Dango;
+use crate::{dango::Dango, sim::RngCore};
 
 #[derive(Debug, EnumString, Clone, Copy, PartialEq, Eq, Display)]
 pub enum Flag {
@@ -140,7 +140,7 @@ impl Map {
         self.abby_move(step, false)
     }
 
-    pub fn restack(&mut self, block_index: usize, rng: &mut ChaCha20Rng) {
+    pub fn restack(&mut self, block_index: usize, rng: &mut RngCore) {
         let stack = &mut self.blocks[block_index].stack;
 
         let shuffle_start = if *stack.front().unwrap() == Dango::Abby {

@@ -1,12 +1,12 @@
 use derive_more::{Deref, DerefMut};
 use indexmap::{IndexMap, IndexSet};
-use rand::rngs::ChaCha20Rng;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use strum::VariantArray;
 
 use crate::{
     dango::{Dango, DangoName},
     map::{Flag, Map},
+    sim::RngCore,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, VariantArray)]
@@ -38,20 +38,54 @@ pub enum HookMessage<'a, 'b> {
     },
 }
 
-impl<'a, 'b> HookMessage<'a, 'b> {
-    pub fn new_after_dice(map: &'a Map, points_map: &'b IndexMap<Dango, u8>) -> Self {
-        Self::AfterDice { map, points_map }
-    }
-
-    pub fn new_before_move(map: &'a Map) -> Self {
-        Self::BeforeMove { map }
-    }
-}
-
 #[derive(Debug)]
 pub struct Context<'a, 'b> {
     pub round: u8,
     pub hook_msg: HookMessage<'a, 'b>,
+}
+
+impl<'a, 'b> Context<'a, 'b> {
+    pub fn on_dice(round: u8) -> Self {
+        Self {
+            round,
+            hook_msg: HookMessage::OnDice,
+        }
+    }
+
+    pub fn after_dice(round: u8, map: &'a Map, points_map: &'b IndexMap<Dango, u8>) -> Self {
+        Self {
+            round,
+            hook_msg: HookMessage::AfterDice { map, points_map },
+        }
+    }
+
+    pub fn before_move(round: u8, map: &'a Map) -> Self {
+        Self {
+            round,
+            hook_msg: HookMessage::BeforeMove { map },
+        }
+    }
+
+    pub fn on_device(round: u8, flag: Flag) -> Self {
+        Self {
+            round,
+            hook_msg: HookMessage::OnDevice { flag },
+        }
+    }
+
+    pub fn finish_move(round: u8) -> Self {
+        Self {
+            round,
+            hook_msg: HookMessage::FinishMove,
+        }
+    }
+
+    pub fn global_finish_move(round: u8, id: Dango) -> Self {
+        Self {
+            round,
+            hook_msg: HookMessage::GlobalFinishMove { id },
+        }
+    }
 }
 
 #[derive(Debug, Deref, DerefMut)]
@@ -78,7 +112,7 @@ impl SkillManager {
         }
     }
 
-    pub fn register(&mut self, dango: &Box<dyn Skill>) {
+    pub fn register(&mut self, dango: &dyn Skill) {
         for hook in dango.hooks() {
             self.inner.get_mut(hook).unwrap().insert(dango.name());
         }
@@ -88,7 +122,7 @@ impl SkillManager {
 // NOTE: Currently it's just for Sigrika
 pub type EffectSet = HashSet<Dango>;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct DelayedAction {
     pub effect_set: EffectSet,
     pub next_tail_ordering: IndexSet<Dango>,
@@ -121,27 +155,27 @@ pub enum HookCapability<'a, 'b> {
 
 #[derive(Debug)]
 pub struct Handle<'a, 'b, 'c> {
-    pub rng: &'a mut ChaCha20Rng,
+    pub rng: &'a mut RngCore,
     pub hook_cap: HookCapability<'b, 'c>,
 }
 
 impl<'a, 'b, 'c> Handle<'a, 'b, 'c> {
-    pub fn new_on_dice(rng: &'a mut ChaCha20Rng, points: &'b mut u8) -> Self {
+    pub fn on_dice(rng: &'a mut RngCore, points: &'b mut u8) -> Self {
         Self {
             rng,
             hook_cap: HookCapability::OnDice { points },
         }
     }
 
-    pub fn new_after_dice(rng: &'a mut ChaCha20Rng, delayed_action: &'b mut DelayedAction) -> Self {
+    pub fn after_dice(rng: &'a mut RngCore, delayed_action: &'b mut DelayedAction) -> Self {
         Self {
             rng,
             hook_cap: HookCapability::AfterDice { delayed_action },
         }
     }
 
-    pub fn new_before_move(
-        rng: &'a mut ChaCha20Rng,
+    pub fn before_move(
+        rng: &'a mut RngCore,
         step: &'b mut u8,
         delayed_action: &'c mut DelayedAction,
     ) -> Self {
@@ -154,15 +188,15 @@ impl<'a, 'b, 'c> Handle<'a, 'b, 'c> {
         }
     }
 
-    pub fn new_on_device(rng: &'a mut ChaCha20Rng, map: &'b mut Map, end: &'c mut bool) -> Self {
+    pub fn on_device(rng: &'a mut RngCore, map: &'b mut Map, end: &'c mut bool) -> Self {
         Self {
             rng,
             hook_cap: HookCapability::OnDevice { map, end },
         }
     }
 
-    pub fn new_finish_move(
-        rng: &'a mut ChaCha20Rng,
+    pub fn finish_move(
+        rng: &'a mut RngCore,
         map: &'b mut Map,
         delayed_action: &'c mut DelayedAction,
     ) -> Self {
@@ -175,7 +209,7 @@ impl<'a, 'b, 'c> Handle<'a, 'b, 'c> {
         }
     }
 
-    pub fn new_global_finish_move(rng: &'a mut ChaCha20Rng, map: &'b mut Map) -> Self {
+    pub fn global_finish_move(rng: &'a mut RngCore, map: &'b mut Map) -> Self {
         Self {
             rng,
             hook_cap: HookCapability::GlobalFinishMove { map },

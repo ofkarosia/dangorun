@@ -31,8 +31,8 @@ macro_rules! create_mappings {
 macro_rules! impl_name {
     ($s:ident) => {
         impl $crate::dango::DangoName for $s {
-            fn name(&self) -> crate::dango::Dango {
-                crate::dango::Dango::$s
+            fn name(&self) -> $crate::dango::Dango {
+                $crate::dango::Dango::$s
             }
         }
     };
